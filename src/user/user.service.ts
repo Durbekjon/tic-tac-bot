@@ -21,9 +21,9 @@ export class UserService {
       chatId: body.chat.id.toString(),
       firstName: body.from.first_name,
       lastName: body.from.last_name || '',
-      username: body.from.username,
+      username: body.from.username || '',
       languageCode: body.from.language_code,
-      isPremium: body.from.is_premium,
+      isPremium: body.from.is_premium || false,
     };
 
     const existUser = await this.findByChatId(userBody.chatId);
