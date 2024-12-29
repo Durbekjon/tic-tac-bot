@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 import { BotService } from './bot.service';
 import { ConfigModule } from '@nestjs/config';
-import { UserService } from 'src/user/user.service';
-import { UserRepository } from 'src/user/user.repository';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { UserService } from 'src/services/user.service';
+import { AxiosService } from 'src/services/axios.service';
 
 @Module({
-  providers: [BotService, UserService, UserRepository, PrismaService],
+  providers: [BotService, UserService, AxiosService],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
