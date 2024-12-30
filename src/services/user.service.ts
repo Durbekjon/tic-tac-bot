@@ -24,16 +24,20 @@ export class UserService {
       isPremium: false,
       languageCode: 'eng',
     };
+   
 
     const foundUser = await this.findUserByChatId(message.from.id.toString());
     if (foundUser) {
       return foundUser;
     } else if (foundUser === null) {
-      const response = await this.axios.post(
-        `${this.configService.get('BACKEND_URL')}/api/user?app_key=${this.configService.get('APP_KEY')}`,
-        user,
-      );
-      return response.data;
+      try {
+        const response = await this.axios.post(
+          `${this.configService.get('BACKEND_URL')}/api/user?app_key=${this.configService.get('APP_KEY')}`,
+          user,
+        );
+        return response.data;
+      } catch (error) {
+      }
     }
 
   }
