@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { AxiosService } from './axios.service';
 import { AxiosInstance } from 'axios';
 import { ConfigService } from '@nestjs/config';
-import * as TelegramBot from 'node-telegram-bot-api';
 
 @Injectable()
 export class UserService {

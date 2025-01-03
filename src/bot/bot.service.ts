@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as TelegramBot from 'node-telegram-bot-api';
+import { ChannelService } from 'src/services/channel.service';
 import { UserService } from 'src/services/user.service';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class BotService implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly userService: UserService,
+    private readonly channelService: ChannelService,
   ) {
     const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
     if (!token) {
@@ -19,45 +21,87 @@ export class BotService implements OnModuleInit {
       );
       throw new Error('TELEGRAM_BOT_TOKEN is required');
     }
-
     this.bot = new TelegramBot(token, { polling: true });
     this.logger.log('Telegram bot initialized successfully');
   }
 
   onModuleInit(): void {
     this.bot.on('message', (message) => this.handleMessage(message));
+    this.bot.on('callback_query', (query) => this.handleCallbackQuery(query));
   }
 
   private async handleMessage(message: TelegramBot.Message): Promise<void> {
     const { chat, text } = message;
     const chatId = chat.id;
 
-    if (!text) {
-      this.logger.warn(`Received a message without text in chat ${chatId}`);
+    if (!(await this.isUserSubscribed(chatId))) {
+      this.promptSubscription(chatId);
       return;
     }
 
     if (text === '/start') {
-      await this.handleStartCommand(chatId);
-      await this.userService.startUser(message);
+      await this.initializeUser(message);
+      await this.sendStartMessage(chatId);
     }
   }
 
-  private async handleStartCommand(chatId: number): Promise<void> {
+  private async handleCallbackQuery(
+    query: TelegramBot.CallbackQuery,
+  ): Promise<void> {
+    const chatId = query.message?.chat.id;
+
+    if (query.data === 'check_subscription') {
+      if (await this.isUserSubscribed(query.from.id)) {
+        this.bot.sendMessage(chatId, "Obuna bo'lganingiz uchun rahmat!");
+        this.sendStartMessage(chatId);
+      } else {
+        this.promptSubscription(chatId);
+      }
+    }
+  }
+
+  private async isUserSubscribed(userId: number): Promise<boolean> {
     try {
-      const url = this.getWebAppUrl(chatId);
+      const response = await this.bot.getChatMember('@byte_of_Durbek', userId);
+      return ['member', 'administrator', 'creator'].includes(response.status);
+    } catch (error) {
+      this.logger.error(
+        `Failed to check subscription for user ${userId}`,
+        error.stack,
+      );
+      return false;
+    }
+  }
+
+  private promptSubscription(chatId: number): void {
+    this.bot.sendMessage(chatId, "Kanalga obuna bo'lishingiz kerak", {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "Kanalga o'tish", url: 'https://t.me/byte_of_Durbek' }],
+          [{ text: "Obuna bo'ldim✅", callback_data: 'check_subscription' }],
+        ],
+      },
+    });
+  }
+
+  private async initializeUser(message: TelegramBot.Message): Promise<void> {
+    try {
+      await this.userService.startUser(message);
+    } catch (error) {
+      this.logger.error('Failed to initialize user', error.stack);
+    }
+  }
+
+  private async sendStartMessage(chatId: number): Promise<void> {
+    try {
+      const webAppUrl = this.getWebAppUrl(chatId);
       await this.bot.sendMessage(
         chatId,
         "Hello! Welcome to the bot. If you want to play Tic-Tac, press the 'Start game' button.",
         {
           reply_markup: {
             inline_keyboard: [
-              [
-                {
-                  text: 'Start game',
-                  web_app: { url },
-                },
-              ],
+              [{ text: 'Start game', web_app: { url: webAppUrl } }],
             ],
           },
         },
