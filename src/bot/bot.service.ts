@@ -43,6 +43,29 @@ export class BotService implements OnModuleInit {
       await this.initializeUser(message);
       await this.sendStartMessage(chatId);
     }
+
+    if (text === '/users') {
+      const response = await this.userService.findUsers();
+
+      const message = `📊 <b>Rating:</b>\n${response
+        .map((user, index) => {
+          const userProfileLink = user.chatId
+            ? `tg://user?id=${user.chatId}`
+            : ''; // Chat ID mavjud bo'lmagan userlar uchun fallback
+          return `<b>${index + 1}.</b> ${
+            userProfileLink
+              ? `<a href="${userProfileLink}">${user.firstName}${
+                  user?.lastName ? ` ${user.lastName}` : ''
+                }</a>`
+              : `${user.firstName}${user?.lastName ? ` ${user.lastName}` : ''}`
+          } - ${user.gamesPlayed} games played`;
+        })
+        .join('\n')}`;
+
+      this.bot.sendMessage('6092896396', message, {
+        parse_mode: 'HTML',
+      });
+    }
   }
 
   private async handleCallbackQuery(
@@ -62,8 +85,11 @@ export class BotService implements OnModuleInit {
 
   private async isUserSubscribed(userId: number): Promise<boolean> {
     try {
-      const response = await this.bot.getChatMember('@byte_of_Durbek', userId);
-      return ['member', 'administrator', 'creator'].includes(response.status);
+      return await this.channelService.checkSubscription(
+        '@byte_of_Durbek',
+        this.configService.get<string>('TELEGRAM_BOT_TOKEN'),
+        userId.toString(),
+      );
     } catch (error) {
       this.logger.error(
         `Failed to check subscription for user ${userId}`,

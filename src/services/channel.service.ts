@@ -32,7 +32,7 @@ export class ChannelService {
       );
 
       const status = response.data.result.status;
-      return ['member', 'administrator', 'creator'].includes(status);
+      return status === 'left' ? false : true;
     } catch (error) {
       console.error('Error checking subscription:', error.message);
       return false;

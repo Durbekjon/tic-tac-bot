@@ -38,6 +38,15 @@ export class UserService {
     }
   }
 
+  async findUsers() {
+    try {
+      const response = await this.axios.get(
+        `${this.configService.get('BACKEND_URL')}/api/user?app_key=${this.configService.get('APP_KEY')}`,
+      );
+      return response.data;
+    } catch (error) {}
+  }
+
   private async findUserByChatId(chatId: string) {
     try {
       const response = await this.axios.get(
