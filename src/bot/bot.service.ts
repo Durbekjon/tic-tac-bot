@@ -34,11 +34,6 @@ export class BotService implements OnModuleInit {
     const { chat, text } = message;
     const chatId = chat.id;
 
-    if (!(await this.isUserSubscribed(chatId))) {
-      this.promptSubscription(chatId);
-      return;
-    }
-
     if (text === '/start') {
       await this.initializeUser(message);
       await this.sendStartMessage(chatId);
